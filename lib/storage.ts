@@ -1,36 +1,82 @@
+import { supabase } from "./supabase";
 import type { AppData, Entry } from "./types";
 
-const KEY = "pensieve.v1";
+type EntryRow = {
+  id: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  prompt: string | null;
+  body: string;
+  due_at: string;
+  interval_days: number;
+  ease: number;
+  reps: number;
+  lapses: number;
+  last_reviewed_at: string | null;
+};
 
-export function loadAll(): Entry[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(KEY);
-    if (!raw) return [];
-    const data = JSON.parse(raw) as AppData;
-    return Array.isArray(data.entries) ? data.entries : [];
-  } catch {
-    return [];
-  }
+function rowToEntry(r: EntryRow): Entry {
+  return {
+    id: r.id,
+    createdAt: Date.parse(r.created_at),
+    updatedAt: Date.parse(r.updated_at),
+    prompt: r.prompt,
+    body: r.body,
+    dueAt: Date.parse(r.due_at),
+    interval: r.interval_days,
+    ease: Number(r.ease),
+    reps: r.reps,
+    lapses: r.lapses,
+    lastReviewedAt: r.last_reviewed_at ? Date.parse(r.last_reviewed_at) : null,
+  };
 }
 
-export function saveAll(entries: Entry[]) {
-  if (typeof window === "undefined") return;
-  const data: AppData = { version: 1, entries };
-  window.localStorage.setItem(KEY, JSON.stringify(data));
+function entryToRow(e: Entry, userId: string) {
+  return {
+    id: e.id,
+    user_id: userId,
+    created_at: new Date(e.createdAt).toISOString(),
+    updated_at: new Date(e.updatedAt).toISOString(),
+    prompt: e.prompt,
+    body: e.body,
+    due_at: new Date(e.dueAt).toISOString(),
+    interval_days: e.interval,
+    ease: e.ease,
+    reps: e.reps,
+    lapses: e.lapses,
+    last_reviewed_at: e.lastReviewedAt ? new Date(e.lastReviewedAt).toISOString() : null,
+  };
+}
+
+export async function fetchEntries(userId: string): Promise<Entry[]> {
+  const { data, error } = await supabase
+    .from("entries")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data as EntryRow[]).map(rowToEntry);
+}
+
+export async function upsertEntry(e: Entry, userId: string): Promise<void> {
+  const { error } = await supabase.from("entries").upsert(entryToRow(e, userId));
+  if (error) throw error;
+}
+
+export async function deleteEntry(id: string): Promise<void> {
+  const { error } = await supabase.from("entries").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteAllEntries(userId: string): Promise<void> {
+  const { error } = await supabase.from("entries").delete().eq("user_id", userId);
+  if (error) throw error;
 }
 
 export function exportJSON(entries: Entry[]): string {
   const data: AppData = { version: 1, entries, exportedAt: Date.now() };
   return JSON.stringify(data, null, 2);
-}
-
-export function importJSON(json: string): Entry[] {
-  const data = JSON.parse(json) as AppData;
-  if (!data || data.version !== 1 || !Array.isArray(data.entries)) {
-    throw new Error("Invalid Pensieve export file.");
-  }
-  return data.entries;
 }
 
 export function downloadFile(name: string, contents: string, type = "application/json") {

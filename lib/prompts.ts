@@ -1,56 +1,33 @@
-export const PROMPTS: string[] = [
-  "What's one small thing that made you smile today?",
-  "Describe a conversation you keep thinking about.",
-  "What did you learn this week that surprised you?",
-  "Who are you grateful for right now, and why?",
-  "What's a tiny win you'd otherwise forget?",
-  "Describe a moment from today in concrete detail — what you saw, smelled, heard.",
-  "What were you worrying about a month ago? How did it turn out?",
-  "What's a decision you're sitting with?",
-  "Capture a sentence someone said that stuck with you.",
-  "What did your body feel like today?",
-  "What's a question you'd like to ask your future self?",
-  "Describe the weather and how it shaped your mood.",
-  "What did you avoid today, and why?",
-  "What's a small risk you took recently?",
-  "Who reached out to you, or who did you reach out to?",
-  "What's a recurring thought you've had this week?",
-  "Describe a place you passed through today.",
-  "What's something you used to believe that you no longer do?",
-  "What's a habit that's quietly working?",
-  "What would you tell yourself if you were a friend?",
-  "What surprised you today?",
-  "What are you looking forward to?",
-  "Describe a meal you ate today.",
-  "What did you read, watch, or listen to that's worth remembering?",
-  "What's a problem you're closer to solving than you think?",
-  "Capture one image from today in a single sentence.",
-  "What was the best part of your morning?",
-  "What was hard today, and what helped?",
-  "Who is someone you want to thank, but haven't?",
-  "What's something true that's hard to say out loud?",
-  "Describe your current desk, room, or surroundings.",
-  "What's a goal that's quietly drifted? Should it stay or go?",
-  "What did kindness look like today — given or received?",
-  "What's something you're proud of that no one else noticed?",
-  "What did you spend money on today, and how did it feel?",
-  "What's an opinion you've changed your mind on this year?",
-  "Describe a person you saw today, even briefly.",
-  "What did you put off? What would help you start?",
-  "What's a smell, song, or taste that took you somewhere?",
-  "What's a question you'd like answered in a year?",
-  "What's the smallest thing that brought you joy?",
-  "What surprised you about someone close to you?",
-  "What did you notice that you'd usually overlook?",
-  "What's a story from today worth telling later?",
-  "What's something you want to remember about right now?",
-  "What's a feeling that's hard to name?",
-  "What's working better than you expected?",
-  "What did you almost forget to do?",
-  "Describe a moment when time slowed down or sped up.",
-  "What's worth holding onto from today?",
+import { supabase } from "./supabase";
+
+export const DEFAULT_PROMPTS: string[] = [
+  "What was the best part of your day?",
+  "What interesting place did you visit today?",
+  "What did you work on?",
+  "What did you read/watch?",
+  "Did you meet anyone new?",
 ];
 
-export function pickPrompt(seed = Date.now()): string {
-  return PROMPTS[Math.floor((seed / 1000) % PROMPTS.length)];
+export async function fetchPrompts(userId: string): Promise<string[] | null> {
+  const { data, error } = await supabase
+    .from("prompts")
+    .select("items")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data?.items as string[] | undefined) ?? null;
+}
+
+export async function savePrompts(userId: string, prompts: string[]): Promise<void> {
+  const { error } = await supabase.from("prompts").upsert({
+    user_id: userId,
+    items: prompts,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) throw error;
+}
+
+export function pickPrompt(prompts: string[], seed = Date.now()): string {
+  if (prompts.length === 0) return "";
+  return prompts[Math.floor((seed / 1000) % prompts.length)];
 }

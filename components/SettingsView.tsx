@@ -1,71 +1,116 @@
 "use client";
 
-import { useRef } from "react";
-import { Download, Upload, Trash2, Github } from "lucide-react";
+import { useState } from "react";
+import { Download, Trash2, Github, Plus, RotateCcw, X, LogOut } from "lucide-react";
 import type { Entry } from "@/lib/types";
-import { exportJSON, importJSON, downloadFile } from "@/lib/storage";
+import { exportJSON, downloadFile } from "@/lib/storage";
+import { DEFAULT_PROMPTS } from "@/lib/prompts";
 
 export function SettingsView({
   entries,
-  onImport,
+  email,
   onClear,
+  onSignOut,
+  prompts,
+  onPromptsChange,
 }: {
   entries: Entry[];
-  onImport: (entries: Entry[]) => void;
+  email: string | null;
   onClear: () => void;
+  onSignOut: () => void;
+  prompts: string[];
+  onPromptsChange: (prompts: string[]) => void;
 }) {
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [newPrompt, setNewPrompt] = useState("");
+
+  const addPrompt = () => {
+    const t = newPrompt.trim();
+    if (!t || prompts.includes(t)) return;
+    onPromptsChange([...prompts, t]);
+    setNewPrompt("");
+  };
+  const removePrompt = (index: number) => {
+    onPromptsChange(prompts.filter((_, i) => i !== index));
+  };
+  const resetPrompts = () => {
+    if (confirm("Reset question presets to defaults?")) onPromptsChange(DEFAULT_PROMPTS);
+  };
 
   const handleExport = () => {
     const stamp = new Date().toISOString().slice(0, 10);
     downloadFile(`pensieve-${stamp}.json`, exportJSON(entries));
   };
 
-  const handleImportFile = async (file: File) => {
-    try {
-      const text = await file.text();
-      const imported = importJSON(text);
-      if (
-        confirm(
-          `Import ${imported.length} entries? This will replace your current ${entries.length} entries.`
-        )
-      ) {
-        onImport(imported);
-      }
-    } catch (err) {
-      alert(`Import failed: ${(err as Error).message}`);
-    }
-  };
-
   return (
     <section className="px-5 py-4 space-y-4">
       <div className="card p-4 space-y-3">
+        <h2 className="font-semibold text-ink-700">Account</h2>
+        {email && <p className="text-sm text-ink-600 truncate">{email}</p>}
+        <button onClick={onSignOut} className="btn-secondary justify-start">
+          <LogOut size={16} /> Sign out
+        </button>
+      </div>
+
+      <div className="card p-4 space-y-3">
         <h2 className="font-semibold text-ink-700">Your data</h2>
         <p className="text-xs text-ink-500">
-          Everything lives in this browser. Back up regularly.
+          Synced to your account. Export a JSON copy for offline backup.
         </p>
-        <div className="flex flex-col gap-2">
-          <button onClick={handleExport} className="btn-primary justify-start">
-            <Download size={16} /> Export entries (JSON)
-          </button>
+        <button onClick={handleExport} className="btn-primary justify-start">
+          <Download size={16} /> Export entries (JSON)
+        </button>
+      </div>
+
+      <div className="card p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-ink-700">Question presets</h2>
           <button
-            onClick={() => fileRef.current?.click()}
-            className="btn-secondary justify-start"
+            onClick={resetPrompts}
+            className="btn-ghost !py-1 !px-2 text-xs"
+            title="Reset to defaults"
           >
-            <Upload size={16} /> Import from file
+            <RotateCcw size={12} /> Reset
           </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="application/json"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handleImportFile(f);
-              e.target.value = "";
-            }}
-          />
         </div>
+        {prompts.length === 0 ? (
+          <p className="text-xs text-ink-400">No presets. Add one below or reset to defaults.</p>
+        ) : (
+          <ul className="space-y-1">
+            {prompts.map((p, i) => (
+              <li key={i} className="flex items-center gap-2 text-sm text-ink-700">
+                <span className="flex-1 italic truncate">{p}</span>
+                <button
+                  onClick={() => removePrompt(i)}
+                  aria-label={`Remove "${p}"`}
+                  className="text-ink-300 hover:text-red-500 p-1 shrink-0"
+                >
+                  <X size={14} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            addPrompt();
+          }}
+          className="flex gap-2"
+        >
+          <input
+            value={newPrompt}
+            onChange={(e) => setNewPrompt(e.target.value)}
+            placeholder="New question…"
+            className="input flex-1 text-sm"
+          />
+          <button
+            type="submit"
+            disabled={!newPrompt.trim() || prompts.includes(newPrompt.trim())}
+            className="btn-secondary disabled:opacity-40"
+          >
+            <Plus size={14} /> Add
+          </button>
+        </form>
       </div>
 
       <div className="card p-4 space-y-2">

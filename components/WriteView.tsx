@@ -1,54 +1,63 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Image as ImageIcon, Sparkles, Save } from "lucide-react";
+import { Image as ImageIcon, Save } from "lucide-react";
 import { pickPrompt } from "@/lib/prompts";
 
-export function WriteView({ onSave }: { onSave: (body: string, prompt: string | null) => void }) {
+export function WriteView({
+  onSave,
+  prompts,
+}: {
+  onSave: (body: string, prompt: string) => void;
+  prompts: string[];
+}) {
   const [prompt, setPrompt] = useState<string>("");
   const [body, setBody] = useState("");
-  const [usePrompt, setUsePrompt] = useState(true);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setPrompt(pickPrompt());
+    setPrompt(pickPrompt(prompts));
+    // Seed once per mount; preset list edits shouldn't clobber a question in progress.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const refreshPrompt = () => setPrompt(pickPrompt(Math.random() * 1e9));
-
   const submit = () => {
-    if (!body.trim()) return;
-    onSave(body.trim(), usePrompt ? prompt : null);
+    if (!body.trim() || !prompt.trim()) return;
+    onSave(body.trim(), prompt.trim());
     setBody("");
     setSaved(true);
     setTimeout(() => setSaved(false), 1600);
-    setPrompt(pickPrompt(Math.random() * 1e9));
+    setPrompt(pickPrompt(prompts, Math.random() * 1e9));
   };
 
   return (
     <section className="px-5 py-4 space-y-4">
       <div className="card p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 text-xs text-ink-500">
-            <input
-              type="checkbox"
-              checked={usePrompt}
-              onChange={(e) => setUsePrompt(e.target.checked)}
-              className="accent-accent"
-            />
-            Use prompt
-          </label>
-          <button
-            onClick={refreshPrompt}
-            disabled={!usePrompt}
-            className="btn-ghost !py-1 !px-2 text-xs disabled:opacity-40"
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs uppercase tracking-wide text-ink-400">Question</span>
+          <select
+            value=""
+            onChange={(e) => {
+              if (e.target.value) setPrompt(e.target.value);
+            }}
+            aria-label="Pick a preset question"
+            className="input !py-1 !px-2 text-xs w-auto"
           >
-            <Sparkles size={14} /> New prompt
-          </button>
+            <option value="">Pick preset…</option>
+            {prompts.map((p, i) => (
+              <option key={i} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
         </div>
-        {usePrompt && (
-          <p className="text-ink-700 text-base italic leading-snug">{prompt}</p>
-        )}
+        <input
+          type="text"
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder="Write or edit a question…"
+          className="input text-base italic leading-snug text-ink-700"
+        />
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
@@ -66,7 +75,11 @@ export function WriteView({ onSave }: { onSave: (body: string, prompt: string | 
           </button>
           <div className="flex items-center gap-2">
             {saved && <span className="text-xs text-green-600">Saved ✓</span>}
-            <button onClick={submit} disabled={!body.trim()} className="btn-primary disabled:opacity-40">
+            <button
+              onClick={submit}
+              disabled={!body.trim() || !prompt.trim()}
+              className="btn-primary disabled:opacity-40"
+            >
               <Save size={16} /> Save
             </button>
           </div>
