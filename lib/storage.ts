@@ -9,10 +9,14 @@ type EntryRow = {
   prompt: string | null;
   body: string;
   due_at: string;
-  interval_days: number;
-  ease: number;
+  stability: number;
+  difficulty: number;
+  scheduled_days: number;
+  elapsed_days: number;
+  learning_steps: number;
   reps: number;
   lapses: number;
+  state: number;
   last_reviewed_at: string | null;
 };
 
@@ -24,10 +28,14 @@ function rowToEntry(r: EntryRow): Entry {
     prompt: r.prompt,
     body: r.body,
     dueAt: Date.parse(r.due_at),
-    interval: r.interval_days,
-    ease: Number(r.ease),
+    stability: Number(r.stability),
+    difficulty: Number(r.difficulty),
+    scheduledDays: r.scheduled_days,
+    elapsedDays: r.elapsed_days,
+    learningSteps: r.learning_steps,
     reps: r.reps,
     lapses: r.lapses,
+    state: r.state,
     lastReviewedAt: r.last_reviewed_at ? Date.parse(r.last_reviewed_at) : null,
   };
 }
@@ -41,10 +49,14 @@ function entryToRow(e: Entry, userId: string) {
     prompt: e.prompt,
     body: e.body,
     due_at: new Date(e.dueAt).toISOString(),
-    interval_days: e.interval,
-    ease: e.ease,
+    stability: e.stability,
+    difficulty: e.difficulty,
+    scheduled_days: e.scheduledDays,
+    elapsed_days: e.elapsedDays,
+    learning_steps: e.learningSteps,
     reps: e.reps,
     lapses: e.lapses,
+    state: e.state,
     last_reviewed_at: e.lastReviewedAt ? new Date(e.lastReviewedAt).toISOString() : null,
   };
 }

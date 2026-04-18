@@ -6,12 +6,16 @@ export interface Entry {
   updatedAt: number;
   prompt: string | null;
   body: string;
-  // Spaced-repetition state
-  dueAt: number;        // unix ms
-  interval: number;     // days
-  ease: number;         // multiplier
-  reps: number;         // total successful reviews
-  lapses: number;       // times forgotten
+  // FSRS card state
+  dueAt: number;            // unix ms
+  stability: number;
+  difficulty: number;
+  scheduledDays: number;
+  elapsedDays: number;
+  learningSteps: number;
+  reps: number;
+  lapses: number;
+  state: number;            // 0 New, 1 Learning, 2 Review, 3 Relearning
   lastReviewedAt: number | null;
 }
 

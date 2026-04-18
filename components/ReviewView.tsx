@@ -3,13 +3,13 @@
 import { useMemo, useState } from "react";
 import { CheckCircle2, RotateCcw } from "lucide-react";
 import type { Entry, Rating } from "@/lib/types";
-import { isDue, memoryStrength } from "@/lib/srs";
+import { formatInterval, isDue, memoryStrength, previewIntervals } from "@/lib/srs";
 
-const RATINGS: { id: Rating; label: string; hint: string; color: string }[] = [
-  { id: "forgot", label: "Forgot", hint: "no recall", color: "bg-red-500 hover:bg-red-600" },
-  { id: "hard", label: "Hard", hint: "barely", color: "bg-orange-500 hover:bg-orange-600" },
-  { id: "good", label: "Good", hint: "remembered", color: "bg-emerald-500 hover:bg-emerald-600" },
-  { id: "easy", label: "Easy", hint: "instantly", color: "bg-sky-500 hover:bg-sky-600" },
+const RATINGS: { id: Rating; label: string; color: string }[] = [
+  { id: "forgot", label: "Forgot", color: "bg-red-500 hover:bg-red-600" },
+  { id: "hard", label: "Hard", color: "bg-orange-500 hover:bg-orange-600" },
+  { id: "good", label: "Good", color: "bg-emerald-500 hover:bg-emerald-600" },
+  { id: "easy", label: "Easy", color: "bg-sky-500 hover:bg-sky-600" },
 ];
 
 export function ReviewView({
@@ -39,6 +39,7 @@ export function ReviewView({
 
   const current = due[0];
   const strength = memoryStrength(current);
+  const intervals = useMemo(() => previewIntervals(current), [current]);
 
   const rate = (r: Rating) => {
     onRate(current.id, r);
@@ -78,7 +79,9 @@ export function ReviewView({
               className={`${r.color} text-white rounded-lg py-3 flex flex-col items-center text-xs font-semibold transition active:scale-[0.97]`}
             >
               <span>{r.label}</span>
-              <span className="font-normal opacity-80">{r.hint}</span>
+              <span className="font-normal opacity-80 tabular-nums">
+                {formatInterval(intervals[r.id])}
+              </span>
             </button>
           ))}
         </div>

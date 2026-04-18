@@ -1,18 +1,24 @@
--- Pensieve schema. Paste this into Supabase SQL editor and run once.
+-- Pensieve schema (current). Paste this into Supabase SQL editor for a fresh install.
+-- For an existing project, apply migrations in supabase/migrations/*.sql instead.
 
 create table if not exists public.entries (
-  id                text        primary key,
-  user_id           uuid        not null references auth.users(id) on delete cascade,
-  created_at        timestamptz not null,
-  updated_at        timestamptz not null,
-  prompt            text,
-  body              text        not null,
-  due_at            timestamptz not null,
-  interval_days     integer     not null,
-  ease              numeric     not null,
-  reps              integer     not null default 0,
-  lapses            integer     not null default 0,
-  last_reviewed_at  timestamptz
+  id              text        primary key,
+  user_id         uuid        not null references auth.users(id) on delete cascade,
+  created_at      timestamptz not null,
+  updated_at      timestamptz not null,
+  prompt          text,
+  body            text        not null,
+  -- FSRS card state (see ts-fsrs Card type)
+  due_at          timestamptz not null,
+  stability       numeric     not null default 0,
+  difficulty      numeric     not null default 0,
+  scheduled_days  integer     not null default 0,
+  elapsed_days    integer     not null default 0,
+  learning_steps  integer     not null default 0,
+  state           smallint    not null default 0,  -- 0 New, 1 Learning, 2 Review, 3 Relearning
+  reps            integer     not null default 0,
+  lapses          integer     not null default 0,
+  last_reviewed_at timestamptz
 );
 
 alter table public.entries enable row level security;
